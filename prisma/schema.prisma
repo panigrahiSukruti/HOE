@@ -1,0 +1,95 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String        @id @default(uuid())
+  name         String
+  email        String        @unique
+  passwordHash String
+  role         String        @default("STUDENT") // "STUDENT" | "INSTRUCTOR" | "ADMIN"
+  createdAt    DateTime      @default(now())
+  courses      Course[]      @relation("InstructorCourses")
+  attempts     QuizAttempt[]
+  submissions  Submission[]
+}
+
+model Course {
+  id           String   @id @default(uuid())
+  title        String
+  slug         String   @unique
+  description  String
+  category     String
+  difficulty   String   @default("Intermediate")
+  published    Boolean  @default(true)
+  instructorId String
+  instructor   User     @relation("InstructorCourses", fields: [instructorId], references: [id], onDelete: Cascade)
+  lessons      Lesson[]
+  quizzes      Quiz[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Lesson {
+  id              String       @id @default(uuid())
+  courseId        String
+  course          Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title           String
+  content         String
+  orderIndex      Int          @default(0)
+  durationMinutes Int          @default(15)
+  submissions     Submission[]
+  createdAt       DateTime     @default(now())
+}
+
+model Quiz {
+  id               String        @id @default(uuid())
+  courseId         String
+  course          Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title            String
+  description      String
+  timeLimitMinutes Int           @default(10)
+  questions        Question[]
+  attempts         QuizAttempt[]
+  createdAt        DateTime      @default(now())
+}
+
+model Question {
+  id            String   @id @default(uuid())
+  quizId        String
+  quiz          Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  questionText  String
+  optionsJson   String   // Stored as JSON array string: ["Option A", "Option B", ...]
+  correctAnswer Int      // Index 0, 1, 2, 3
+  explanation   String
+  createdAt     DateTime @default(now())
+}
+
+model QuizAttempt {
+  id             String   @id @default(uuid())
+  quizId         String
+  quiz           Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  score          Int
+  totalQuestions Int
+  answersJson    String   // Stored as JSON object mapping questionId -> selectedOptionIndex
+  completedAt    DateTime @default(now())
+}
+
+model Submission {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessonId    String
+  lesson      Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  codeContent String
+  aiScore     Int?
+  aiFeedback  String?
+  gradedAt    DateTime @default(now())
+}
