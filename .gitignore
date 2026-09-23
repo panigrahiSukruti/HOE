@@ -27,6 +27,11 @@ yarn-error.log*
 .env*.local
 .env.production
 
+# database
+*.db
+*.db-journal
+*.sqlite
+
 # vercel
 .vercel
 
